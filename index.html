@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Examen Final</title>
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/dexie.min.js"></script>
+</head>
+<body>
+  <h1>Nombre: Pablo René Lémus García</h1>
+  <h2>Usuario de Github: Lemus365</h2>
+  <a href="https://github.com/Lemus365" target="_blank">Link hacia mi perfil de GitHub</a>
+
+  <h2>Formulario:</h2>
+  <input type="text" id="nombre" placeholder="Nombre" />
+  <input type="text" id="apellido" placeholder="Apellido" />
+  <input type="number" id="anioNacimiento" placeholder="Año de nacimiento" />
+  <input type="number" id="mesNacimiento" placeholder="Mes de nacimiento (1-12)" min="1" max="12" />
+  <button onclick="agregarPersona()">Guardar</button>
+
+  <h3>Personas Registradas</h3>
+  <ul id="listaPersonas"></ul>
+
+  <script type="text/javascript">
+    const db = new Dexie("PersonasDB");
+    db.version(1).stores({
+      personas: '++id,nombre,apellido,anioNacimiento,mesNacimiento'
+    });
+
+    function calcularEdad(anioNacimiento) {
+      const anioActual = new Date().getFullYear();
+      return anioActual - anioNacimiento;
+    }
+
+    function esBisiesto(anio) {
+      return (anio % 4 === 0 && anio % 100 !== 0) || (anio % 400 === 0);
+    }
+
+    function esMesPar(mes) {
+      return mes % 2 === 0;
+    }
+
+    async function agregarPersona() {
+      const nombre = document.getElementById("nombre").value.trim();
+      const apellido = document.getElementById("apellido").value.trim();
+      const anioNacimiento = parseInt(document.getElementById("anioNacimiento").value);
+      const mesNacimiento = parseInt(document.getElementById("mesNacimiento").value);
+
+      if (!nombre || !apellido || isNaN(anioNacimiento) || isNaN(mesNacimiento) || mesNacimiento < 1 || mesNacimiento > 12) {
+        alert("Por favor completa todos los campos correctamente y asegúrate que el mes sea entre 1 y 12.");
+        return;
+      }
+
+      await db.personas.add({ nombre, apellido, anioNacimiento, mesNacimiento });
+
+      document.getElementById("nombre").value = '';
+      document.getElementById("apellido").value = '';
+      document.getElementById("anioNacimiento").value = '';
+      document.getElementById("mesNacimiento").value = '';
+
+      listarPersonas();
+    }
+
+    async function eliminarPersona(id) {
+      await db.personas.delete(id);
+      listarPersonas();
+    }
+
+    async function listarPersonas() {
+      const lista = document.getElementById("listaPersonas");
+      lista.innerHTML = '';
+
+      const personas = await db.personas.toArray();
+
+      personas.forEach(persona => {
+        const edad = calcularEdad(persona.anioNacimiento);
+        const bisiesto = esBisiesto(persona.anioNacimiento) ? "Bisiesto" : "No bisiesto";
+        const mesParidad = esMesPar(persona.mesNacimiento) ? "Par" : "Impar";
+
+        const li = document.createElement("li");
+        li.textContent = `${persona.nombre} ${persona.apellido} - Edad: ${edad} años - Año: ${persona.anioNacimiento} (${bisiesto}) - Mes: ${persona.mesNacimiento} (${mesParidad})`;
+
+        const btnEliminar = document.createElement("button");
+        btnEliminar.textContent = "Eliminar";
+        btnEliminar.style.marginLeft = "10px";
+        btnEliminar.onclick = () => eliminarPersona(persona.id);
+
+        li.appendChild(btnEliminar);
+        lista.appendChild(li);
+      });
+    }
+
+    // Cargar lista al inicio
+    listarPersonas();
+  </script>
+</body>
+</html>
